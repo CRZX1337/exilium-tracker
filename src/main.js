@@ -84,7 +84,8 @@ async function loadSettings() {
 
 function updateAuthUI() {
   if (currentUser) {
-    isOwner = currentUser.app_metadata?.role === 'owner';
+    const role = currentUser.app_metadata?.role || currentUser.user_metadata?.role || '';
+    isOwner = role.toLowerCase() === 'owner' || role.toLowerCase() === 'admin';
     isUser = !isOwner;
   } else {
     isOwner = false;
@@ -849,22 +850,64 @@ function editStrain(strain) {
   window.location.hash = '#add';
 }
 
+function showConfirmModal(message, onConfirm) {
+  const modal = document.getElementById('confirm-modal');
+  const msgEl = document.getElementById('confirm-modal-message');
+  const confirmBtn = document.getElementById('confirm-modal-confirm');
+  const cancelBtn = document.getElementById('confirm-modal-cancel');
+  const closeBtn = document.getElementById('confirm-modal-close');
+
+  msgEl.textContent = message;
+  
+  // Clone to remove old event listeners
+  const newConfirmBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+  
+  const newCancelBtn = cancelBtn.cloneNode(true);
+  cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+  
+  const newCloseBtn = closeBtn.cloneNode(true);
+  closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+  const closeModal = () => {
+    modal.classList.add('hidden');
+  };
+
+  newConfirmBtn.addEventListener('click', () => {
+    closeModal();
+    if (onConfirm) onConfirm();
+  });
+
+  newCancelBtn.addEventListener('click', closeModal);
+  newCloseBtn.addEventListener('click', closeModal);
+
+  modal.classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
+}
+
 async function deleteStrain(strain) {
   if (!canEditStrain(strain)) {
     return showToast('You do not have permission to delete this strain', 'error');
   }
-  if (!confirm(`Are you sure you want to delete "${strain.name}"?`)) return;
   
-  try {
-    const { error } = await supabase.from('strains').delete().eq('id', strain.id);
-    if (error) throw error;
-    
-    strains = strains.filter(s => s.id !== strain.id);
-    renderStrains();
-    showToast('Strain deleted', 'success');
-  } catch (err) {
-    showToast('Failed to delete: ' + err.message, 'error');
-  }
+  showConfirmModal(`Möchtest du "${strain.name}" wirklich löschen?`, async () => {
+    try {
+      const { error } = await supabase.from('strains').delete().eq('id', strain.id);
+      if (error) throw error;
+      
+      strains = strains.filter(s => s.id !== strain.id);
+      renderStrains();
+      
+      const userPanelModal = document.getElementById('user-panel-modal');
+      if (userPanelModal && !userPanelModal.classList.contains('hidden')) {
+        loadUserStrains();
+      }
+      
+      showToast('Strain deleted', 'success');
+    } catch (err) {
+      showToast('Failed to delete: ' + err.message, 'error');
+    }
+  });
 }
 
 function resetAddForm() {
