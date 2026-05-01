@@ -6,9 +6,9 @@
 
 **A sleek, cross-platform desktop app for tracking your strains — built with Tauri v2 + Vite.**
 
-[![Release](https://img.shields.io/github/v/release/CRZX1337/exilium-tracker?style=flat-square&color=7c3aed)](https://github.com/CRZX1337/exilium-tracker/releases/latest)
+[![Release](https://img.shields.io/badge/release-v0.1.0-7c3aed?style=flat-square)](https://github.com/CRZX1337/exilium-tracker/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/CRZX1337/exilium-tracker/ci.yml?style=flat-square&label=CI&color=10b981)](https://github.com/CRZX1337/exilium-tracker/actions)
-[![License](https://img.shields.io/github/license/CRZX1337/exilium-tracker?style=flat-square&color=f59e0b)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-f59e0b?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square)](https://github.com/CRZX1337/exilium-tracker/releases)
 
 </div>
