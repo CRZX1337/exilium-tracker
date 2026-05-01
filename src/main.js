@@ -80,15 +80,16 @@ async function loadSettings() {
 }
 
 function updateAuthUI() {
-  const authBtnText = document.getElementById('auth-btn-text');
-  const authBtnIcon = document.querySelector('#auth-btn i');
-  if (authBtnText && authBtnIcon) {
+  const authBtn = document.getElementById('auth-btn');
+  if (authBtn) {
     if (currentUser) {
-      authBtnText.textContent = 'Logout';
-      authBtnIcon.setAttribute('data-lucide', 'log-out');
+      authBtn.innerHTML = '<i data-lucide="log-out"></i> <span id="auth-btn-text">Log out</span>';
+      authBtn.classList.remove('btn-secondary');
+      authBtn.classList.add('btn-danger');
     } else {
-      authBtnText.textContent = 'Admin Login';
-      authBtnIcon.setAttribute('data-lucide', 'log-in');
+      authBtn.innerHTML = '<i data-lucide="log-in"></i> <span id="auth-btn-text">Admin Login</span>';
+      authBtn.classList.remove('btn-danger');
+      authBtn.classList.add('btn-secondary');
     }
     lucide.createIcons();
   }
@@ -527,6 +528,15 @@ function setupForms() {
       document.getElementById('auth-password').value = '';
     }
   });
+
+  const handleAuthEnter = (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('auth-submit-btn')?.click();
+    }
+  };
+  
+  document.getElementById('auth-email')?.addEventListener('keydown', handleAuthEnter);
+  document.getElementById('auth-password')?.addEventListener('keydown', handleAuthEnter);
 }
 
 // Star Rating Input
