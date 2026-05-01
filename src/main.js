@@ -635,6 +635,15 @@ function setupForms() {
   document.getElementById('admin-panel-close')?.addEventListener('click', () => {
     document.getElementById('admin-panel-modal').classList.add('hidden');
   });
+
+  // Generic modal close on overlay background click
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+      }
+    });
+  });
 }
 
 function loadUserStrains() {
@@ -679,7 +688,6 @@ function loadUserStrains() {
     
     item.querySelector('.del-btn').addEventListener('click', () => {
       deleteStrain(strain);
-      item.remove();
     });
     
     container.appendChild(item);
@@ -734,7 +742,6 @@ function loadAdminStrains() {
     
     item.querySelector('.del-btn').addEventListener('click', () => {
       deleteStrain(strain);
-      item.remove();
     });
     
     container.appendChild(item);
@@ -966,6 +973,11 @@ async function deleteStrain(strain) {
       const userPanelModal = document.getElementById('user-panel-modal');
       if (userPanelModal && !userPanelModal.classList.contains('hidden')) {
         loadUserStrains();
+      }
+
+      const adminPanelModal = document.getElementById('admin-panel-modal');
+      if (adminPanelModal && !adminPanelModal.classList.contains('hidden')) {
+        loadAdminStrains();
       }
       
       showToast('Strain deleted', 'success');
