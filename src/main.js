@@ -644,6 +644,23 @@ function setupForms() {
       }
     });
   });
+
+  // Admin Panel Tabs
+  document.getElementById('admin-tab-strains')?.addEventListener('click', (e) => {
+    e.target.style.color = 'var(--accent)';
+    document.getElementById('admin-tab-users').style.color = 'inherit';
+    document.getElementById('admin-section-strains').classList.remove('hidden');
+    document.getElementById('admin-section-users').classList.add('hidden');
+    loadAdminStrains();
+  });
+
+  document.getElementById('admin-tab-users')?.addEventListener('click', (e) => {
+    e.target.style.color = 'var(--accent)';
+    document.getElementById('admin-tab-strains').style.color = 'inherit';
+    document.getElementById('admin-section-users').classList.remove('hidden');
+    document.getElementById('admin-section-strains').classList.add('hidden');
+    loadAdminUsers();
+  });
 }
 
 function loadUserStrains() {
@@ -748,6 +765,89 @@ function loadAdminStrains() {
   });
   
   if (window.lucide) window.lucide.createIcons();
+}
+
+async function loadAdminUsers() {
+  const container = document.getElementById('admin-users-list');
+  container.innerHTML = '<div style="text-align:center; padding:20px;"><i data-lucide="loader" class="animate-spin"></i> Lade Benutzer...</div>';
+  if (window.lucide) window.lucide.createIcons();
+  
+  if (!currentUser || !isOwner) return;
+  
+  try {
+    const { data: users, error } = await supabase.rpc('get_all_users');
+    
+    if (error) throw error;
+    
+    container.innerHTML = '';
+    
+    if (!users || users.length === 0) {
+      container.innerHTML = '<p class="text-muted">Keine Benutzer gefunden.</p>';
+      return;
+    }
+    
+    users.forEach(user => {
+      const item = document.createElement('div');
+      item.className = 'admin-list-item';
+      item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg-secondary); border-radius:8px;';
+      
+      const roleBadge = user.role === 'owner' ? '<span style="font-size:11px; color:#f59e0b; border: 1px solid rgba(245,158,11,0.3); padding: 2px 6px; border-radius: 4px;">Owner</span>' :
+                        user.role === 'admin' ? '<span style="font-size:11px; color:#3b82f6; border: 1px solid rgba(59,130,246,0.3); padding: 2px 6px; border-radius: 4px;">Admin</span>' :
+                        '<span style="font-size:11px; color:#10b981; border: 1px solid rgba(16,185,129,0.3); padding: 2px 6px; border-radius: 4px;">User</span>';
+      
+      item.innerHTML = `
+        <div>
+          <div style="font-weight:600; font-size:14px;">${user.email}</div>
+          <div style="font-size:12px; margin-top:6px; display:flex; gap:8px; align-items: center;">
+            ${roleBadge}
+            <span style="color:var(--text-muted); font-family: monospace;">ID: ${user.id.substring(0,8)}...</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select class="user-role-select" style="background:var(--bg-input); color:var(--text-primary); border:1px solid var(--border-subtle); padding:6px 8px; border-radius:6px; font-size:13px; outline:none; cursor: pointer;">
+            <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+            <option value="owner" ${user.role === 'owner' ? 'selected' : ''}>Owner</option>
+          </select>
+          <button class="btn btn-danger btn-icon del-user-btn" title="Delete User"><i data-lucide="trash-2"></i></button>
+        </div>
+      `;
+      
+      const select = item.querySelector('.user-role-select');
+      select.addEventListener('change', async (e) => {
+        const newRole = e.target.value;
+        try {
+          const { error: updateErr } = await supabase.rpc('update_user_role', { target_user_id: user.id, new_role: newRole });
+          if (updateErr) throw updateErr;
+          showToast('Benutzerrolle aktualisiert!', 'success');
+          loadAdminUsers();
+        } catch(err) {
+          showToast('Fehler: ' + err.message, 'error');
+          e.target.value = user.role; // revert
+        }
+      });
+      
+      item.querySelector('.del-user-btn').addEventListener('click', () => {
+        showConfirmModal(`Möchtest du den Benutzer "${user.email}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`, async () => {
+          try {
+            const { error: delErr } = await supabase.rpc('delete_user', { target_user_id: user.id });
+            if (delErr) throw delErr;
+            showToast('Benutzer gelöscht', 'success');
+            loadAdminUsers(); // Refresh the list
+          } catch(err) {
+            showToast('Fehler beim Löschen: ' + err.message, 'error');
+          }
+        });
+      });
+      
+      container.appendChild(item);
+    });
+    
+    if (window.lucide) window.lucide.createIcons();
+    
+  } catch(err) {
+    container.innerHTML = `<p class="text-danger" style="color: #ef4444;">Fehler beim Laden: ${err.message}</p>`;
+  }
 }
 
 // Star Rating Input

@@ -339,9 +339,25 @@
           <i data-lucide="x"></i>
         </div>
         <h2 style="margin-bottom: 20px;">Admin Panel</h2>
-        <div class="admin-panel-section">
+        
+        <!-- Admin Panel Tabs -->
+        <div style="display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <button class="btn btn-ghost" id="admin-tab-strains" style="color: var(--accent);">Sorten</button>
+          <button class="btn btn-ghost" id="admin-tab-users">Benutzer</button>
+        </div>
+
+        <!-- Strains Section -->
+        <div class="admin-panel-section" id="admin-section-strains">
           <h3 style="margin-bottom: 12px;">Alle Sorten verwalten</h3>
           <div id="admin-strains-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Users Section -->
+        <div class="admin-panel-section hidden" id="admin-section-users">
+          <h3 style="margin-bottom: 12px;">Alle Benutzer verwalten</h3>
+          <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 8px;">
             <!-- Rendered by JS -->
           </div>
         </div>
