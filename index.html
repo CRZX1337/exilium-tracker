@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exilium - Strain Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <!-- Custom Titlebar -->
+    <div data-tauri-drag-region class="titlebar">
+      <div class="titlebar-left">
+        <i data-lucide="leaf" class="logo-icon"></i>
+        <span class="title">EXILIUM</span>
+      </div>
+      <div class="titlebar-right">
+        <div class="titlebar-button" id="titlebar-minimize">
+          <i data-lucide="minus"></i>
+        </div>
+        <div class="titlebar-button" id="titlebar-maximize">
+          <i data-lucide="square"></i>
+        </div>
+        <div class="titlebar-button close" id="titlebar-close">
+          <i data-lucide="x"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-toggle" id="sidebar-toggle">
+            <i data-lucide="menu"></i>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="nav-indicator"></div>
+          <a href="#dashboard" class="nav-item active" data-view="dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="#add" class="nav-item" data-view="add">
+            <i data-lucide="plus-circle"></i>
+            <span class="nav-label">Add Strain</span>
+          </a>
+          <a href="#statistics" class="nav-item" data-view="statistics">
+            <i data-lucide="bar-chart-2"></i>
+            <span class="nav-label">Statistics</span>
+          </a>
+          <a href="#about" class="nav-item" data-view="about">
+            <i data-lucide="info"></i>
+            <span class="nav-label">About</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="connection-status" id="connection-status">
+            <div class="status-dot offline"></div>
+            <span class="status-text">Offline</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Dashboard View -->
+        <div class="view" id="view-dashboard">
+          <header class="view-header">
+            <h1>My Collection</h1>
+            <div class="header-actions">
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="search-input" placeholder="Search strains...">
+              </div>
+              <div class="filter-box">
+                <select id="type-filter">
+                  <option value="all">All Types</option>
+                  <option value="Indica">Indica</option>
+                  <option value="Sativa">Sativa</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </div>
+            </div>
+          </header>
+          <div class="strain-grid" id="strain-grid">
+            <!-- Strain cards will be injected here -->
+          </div>
+          <div class="empty-state hidden" id="empty-state">
+            <div class="empty-icon-wrapper">
+              <i data-lucide="leaf" class="floating-logo"></i>
+            </div>
+            <h2>Your collection is empty</h2>
+            <p>Start tracking your strains by adding your first one.</p>
+            <button class="btn btn-primary" onclick="window.location.hash = '#add'">
+              <i data-lucide="plus"></i> Add First Strain
+            </button>
+          </div>
+        </div>
+
+        <!-- Add Strain View -->
+        <div class="view hidden" id="view-add">
+          <header class="view-header">
+            <h1>Add New Strain</h1>
+          </header>
+          <div class="form-container">
+            <form id="add-strain-form">
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="name">Strain Name</label>
+                  <input type="text" id="name" required placeholder="e.g. Blue Dream">
+                </div>
+                <div class="form-group flex-1">
+                  <label for="medical_name">Medical/Botanical Name</label>
+                  <input type="text" id="medical_name" placeholder="Optional">
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="type">Type</label>
+                  <select id="type" required>
+                    <option value="Indica">Indica</option>
+                    <option value="Sativa">Sativa</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="thc">THC %</label>
+                  <input type="number" id="thc" step="0.1" min="0" max="100" placeholder="0.0">
+                </div>
+                <div class="form-group">
+                  <label for="cbd">CBD %</label>
+                  <input type="number" id="cbd" step="0.1" min="0" max="100" placeholder="0.0">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Rating</label>
+                <div class="star-rating-input" id="star-rating-input">
+                  <!-- JS will generate 5 stars here for selection -->
+                </div>
+                <input type="hidden" id="rating" value="0">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="effects">Effects (comma separated)</label>
+                  <input type="text" id="effects" placeholder="Happy, Relaxed, Euphoric">
+                </div>
+                <div class="form-group flex-1">
+                  <label for="flavor">Flavor Profile</label>
+                  <input type="text" id="flavor" placeholder="Sweet, Berry, Earthy">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="importer">Grower / Importer</label>
+                  <input type="text" id="importer" placeholder="e.g. Aurora">
+                </div>
+                <div class="form-group flex-1">
+                  <label for="price">Price (per gram)</label>
+                  <input type="number" id="price" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" rows="4" placeholder="Personal experience and notes..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="image_url">Image URL</label>
+                <input type="text" id="image_url" placeholder="https://example.com/image.jpg">
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="window.location.hash = '#dashboard'">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="save-strain-btn">Save Strain</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Statistics View -->
+        <div class="view hidden" id="view-statistics">
+          <header class="view-header">
+            <h1>Collection Stats</h1>
+          </header>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Total Strains</h3>
+              <div class="stat-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card">
+              <h3>Average Rating</h3>
+              <div class="stat-value"><span id="stat-avg-rating">0.0</span> <i data-lucide="star" class="star-icon"></i></div>
+            </div>
+            <div class="stat-card">
+              <h3>Average THC</h3>
+              <div class="stat-value"><span id="stat-avg-thc">0.0</span>%</div>
+            </div>
+          </div>
+          
+          <div class="stats-row mt-6">
+            <div class="stat-box flex-1">
+              <h3>Type Distribution</h3>
+              <div class="distribution-bar-container">
+                <div class="distribution-bar">
+                  <div class="dist-segment type-indica" id="dist-indica" style="width: 0%"></div>
+                  <div class="dist-segment type-sativa" id="dist-sativa" style="width: 0%"></div>
+                  <div class="dist-segment type-hybrid" id="dist-hybrid" style="width: 0%"></div>
+                </div>
+                <div class="dist-legend">
+                  <div class="legend-item"><div class="dot type-indica"></div> Indica (<span id="dist-indica-val">0</span>%)</div>
+                  <div class="legend-item"><div class="dot type-sativa"></div> Sativa (<span id="dist-sativa-val">0</span>%)</div>
+                  <div class="legend-item"><div class="dot type-hybrid"></div> Hybrid (<span id="dist-hybrid-val">0</span>%)</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-box flex-1">
+              <h3>Top Rated Strain</h3>
+              <div id="top-strain-container">
+                <p class="text-muted">No data available.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- About View -->
+        <div class="view hidden" id="view-about">
+          <header class="view-header">
+            <h1>About Exilium</h1>
+          </header>
+          <div class="form-container">
+            <div style="text-align: center; padding: 2rem 0;">
+              <i data-lucide="leaf" style="width: 64px; height: 64px; color: var(--accent); margin-bottom: 1rem;"></i>
+              <h2>Exilium - Strain Tracker</h2>
+              <p class="text-muted" style="margin-bottom: 2rem;">Version 0.1.0</p>
+              
+              <button class="btn btn-primary" id="refresh-data-btn">
+                <i data-lucide="refresh-cw"></i> Refresh Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Strain Detail Modal -->
+    <div class="modal-overlay hidden" id="strain-modal">
+      <div class="modal-content">
+        <div class="modal-close" id="modal-close">
+          <i data-lucide="x"></i>
+        </div>
+        <div class="modal-body" id="modal-body">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
