@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src-tauri/icons/icon.png" alt="Exilium Tracker Logo" width="120" height="120" />
+<img src="src-tauri/icons/logo-transparent.webp" alt="Exilium Tracker Logo" width="240" height="126" />
 
 # Exilium Tracker
 
