@@ -133,9 +133,18 @@ function setupRouting() {
   handleRoute();
 }
 
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.classList.add('hidden');
+  });
+}
+
 function handleRoute() {
   const hash = window.location.hash.substring(1) || 'dashboard';
   
+  // Close all modals when navigating
+  closeAllModals();
+
   // Hide all views
   document.querySelectorAll('.view').forEach(view => {
     view.classList.add('hidden');
@@ -266,7 +275,7 @@ function renderStrains() {
               <div class="card-medical">${strain.medical_name || ''}</div>
             </div>
             <div class="card-rating">
-              <span>${strain.rating.toFixed(1)}</span>
+              <span>${(strain.rating || 0).toFixed(1)}</span>
               <i data-lucide="star"></i>
             </div>
           </div>
@@ -363,9 +372,9 @@ function openStrainModal(strain) {
         <div class="modal-stat-box">
           <span class="label">Rating</span>
           <span class="value" style="font-size: 18px;">
-            ${strain.rating.toFixed(1)} 
+            ${(strain.rating || 0).toFixed(1)} 
             <span style="display:flex; margin-left:6px; gap:2px;">
-              ${[1,2,3,4,5].map(i => `<i data-lucide="star" style="width:14px; height:14px; ${i <= strain.rating ? 'fill:var(--star); color:var(--star);' : 'color:var(--text-muted);'}"></i>`).join('')}
+              ${[1,2,3,4,5].map(i => `<i data-lucide="star" style="width:14px; height:14px; ${i <= (strain.rating || 0) ? 'fill:var(--star); color:var(--star);' : 'color:var(--text-muted);'}"></i>`).join('')}
             </span>
           </span>
         </div>
@@ -521,16 +530,16 @@ function setupForms() {
         const filePath = `${currentUser ? currentUser.id : 'public'}/${fileName}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('strain_images')
+          .from('strain-images')
           .upload(filePath, imageFile);
           
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
-          throw new Error('Fehler beim Bild-Upload. Existiert der Storage-Bucket "strain_images"? ' + uploadError.message);
+          throw new Error('Fehler beim Bild-Upload. Nutze Bucket "strain-images": ' + uploadError.message);
         }
         
         const { data: { publicUrl } } = supabase.storage
-          .from('strain_images')
+          .from('strain-images')
           .getPublicUrl(filePath);
           
         strainData.image_url = publicUrl;
@@ -560,6 +569,7 @@ function setupForms() {
         showToast('Strain added successfully', 'success');
       }
       
+      renderStrains();
       e.target.reset();
       resetAddForm();
       window.location.hash = '#dashboard';
