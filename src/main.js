@@ -26,6 +26,8 @@ let supabase = null;
 let strains = [];
 let currentRating = 0;
 let currentUser = null;
+let isOwner = false;
+let isUser = false;
 
 // Initialize App
 async function init() {
@@ -81,6 +83,14 @@ async function loadSettings() {
 }
 
 function updateAuthUI() {
+  if (currentUser) {
+    isOwner = currentUser.app_metadata?.role === 'owner';
+    isUser = !isOwner;
+  } else {
+    isOwner = false;
+    isUser = false;
+  }
+
   const authBtn = document.getElementById('auth-btn');
   if (authBtn) {
     if (currentUser) {
@@ -88,12 +98,19 @@ function updateAuthUI() {
       authBtn.classList.remove('btn-secondary');
       authBtn.classList.add('btn-danger');
     } else {
-      authBtn.innerHTML = '<i data-lucide="log-in"></i> <span id="auth-btn-text">Admin Login</span>';
+      authBtn.innerHTML = '<i data-lucide="log-in"></i> <span id="auth-btn-text">Login</span>';
       authBtn.classList.remove('btn-danger');
       authBtn.classList.add('btn-secondary');
     }
-    lucide.createIcons();
   }
+
+  const adminPanelBtn = document.getElementById('admin-panel-btn');
+  if (adminPanelBtn) adminPanelBtn.style.display = isOwner ? 'flex' : 'none';
+  
+  const userPanelBtn = document.getElementById('user-panel-btn');
+  if (userPanelBtn) userPanelBtn.style.display = isUser ? 'flex' : 'none';
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function updateConnectionStatus(isConnected) {
@@ -194,6 +211,12 @@ async function fetchStrains() {
   }
 }
 
+function canEditStrain(strain) {
+  if (!currentUser) return false;
+  if (isOwner) return true;
+  return strain.user_id === currentUser.id;
+}
+
 // Render Strains
 function renderStrains() {
   const grid = document.getElementById('strain-grid');
@@ -226,11 +249,14 @@ function renderStrains() {
       
       const dateStr = strain.created_at ? new Date(strain.created_at).toLocaleDateString('de-DE') : '';
       const effectsText = strain.effects || 'No effects listed';
+      
+      const privateBadge = strain.is_private ? `<div class="card-type-badge" style="background:rgba(0,0,0,0.6); right:auto; left:12px;"><i data-lucide="lock" style="width:12px; height:12px; vertical-align:middle;"></i> Private</div>` : '';
 
       card.innerHTML = `
         <div class="card-image-wrap">
           <img src="${imgSrc}" alt="${strain.name}" loading="lazy" onerror="this.src='${placeholderImg}'">
           <div class="card-type-badge ${typeClass}">${strain.type}</div>
+          ${privateBadge}
         </div>
         <div class="card-content">
           <div class="card-header">
@@ -256,7 +282,7 @@ function renderStrains() {
           <div class="card-effects">${effectsText}</div>
           <div class="card-footer">
             <div class="card-date">${dateStr}</div>
-            ${currentUser ? `
+            ${canEditStrain(strain) ? `
             <div class="card-actions">
               <button class="card-action-btn edit" title="Edit">
                 <i data-lucide="pencil"></i>
@@ -281,7 +307,7 @@ function renderStrains() {
       
       card.addEventListener('click', () => openStrainModal(strain));
       
-      if (currentUser) {
+      if (canEditStrain(strain)) {
         const editBtn = card.querySelector('.edit');
         const deleteBtn = card.querySelector('.delete');
         
@@ -453,8 +479,13 @@ function setupForms() {
       importer: document.getElementById('importer').value,
       price: parseFloat(document.getElementById('price').value) || 0,
       notes: document.getElementById('notes').value,
-      image_url: document.getElementById('image_url').value
+      image_url: document.getElementById('image_url').value,
+      is_private: document.getElementById('is_private').checked
     };
+    
+    if (!strainId && currentUser) {
+      strainData.user_id = currentUser.id;
+    }
     
     try {
       if (strainId) {
@@ -505,6 +536,51 @@ function setupForms() {
     document.getElementById('auth-modal').classList.add('hidden');
   });
 
+  document.getElementById('show-register-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('auth-modal').classList.add('hidden');
+    document.getElementById('register-modal').classList.remove('hidden');
+  });
+
+  document.getElementById('show-login-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('register-modal').classList.add('hidden');
+    document.getElementById('auth-modal').classList.remove('hidden');
+  });
+
+  document.getElementById('register-modal-close')?.addEventListener('click', () => {
+    document.getElementById('register-modal').classList.add('hidden');
+  });
+
+  document.getElementById('reg-submit-btn')?.addEventListener('click', async () => {
+    const email = document.getElementById('reg-email').value;
+    const password = document.getElementById('reg-password').value;
+    const confirm = document.getElementById('reg-password-confirm').value;
+    const btn = document.getElementById('reg-submit-btn');
+
+    if (!email || !password) return showToast('Please enter email and password', 'error');
+    if (password !== confirm) return showToast('Passwords do not match', 'error');
+
+    btn.textContent = 'Registrieren...';
+    btn.disabled = true;
+
+    const { error } = await supabase.auth.signUp({ email, password });
+
+    btn.textContent = 'Registrieren';
+    btn.disabled = false;
+
+    if (error) {
+      showToast(error.message, 'error');
+    } else {
+      showToast('Registration successful! Please login.', 'success');
+      document.getElementById('register-modal').classList.add('hidden');
+      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('reg-email').value = '';
+      document.getElementById('reg-password').value = '';
+      document.getElementById('reg-password-confirm').value = '';
+    }
+  });
+
   document.getElementById('auth-submit-btn')?.addEventListener('click', async () => {
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
@@ -538,6 +614,67 @@ function setupForms() {
   
   document.getElementById('auth-email')?.addEventListener('keydown', handleAuthEnter);
   document.getElementById('auth-password')?.addEventListener('keydown', handleAuthEnter);
+  
+  // User Panel Handlers
+  document.getElementById('user-panel-btn')?.addEventListener('click', () => {
+    document.getElementById('user-panel-modal').classList.remove('hidden');
+    loadUserStrains();
+  });
+  
+  document.getElementById('user-panel-close')?.addEventListener('click', () => {
+    document.getElementById('user-panel-modal').classList.add('hidden');
+  });
+}
+
+function loadUserStrains() {
+  const container = document.getElementById('user-strains-list');
+  container.innerHTML = '';
+  
+  if (!currentUser) return;
+  
+  const userStrains = strains.filter(s => s.user_id === currentUser.id);
+  
+  if (userStrains.length === 0) {
+    container.innerHTML = '<p class="text-muted">Du hast noch keine Sorten hinzugefügt.</p>';
+    return;
+  }
+  
+  userStrains.forEach(strain => {
+    const item = document.createElement('div');
+    item.className = 'admin-list-item'; // Reusing existing styling if any, or a simple flex layout
+    item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg-secondary); border-radius:8px;';
+    
+    const typeClass = strain.type === 'Indica' ? 'type-indica' : strain.type === 'Sativa' ? 'type-sativa' : 'type-hybrid';
+    const privateBadge = strain.is_private ? '<span style="font-size:12px; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px; margin-left:8px;"><i data-lucide="lock" style="width:10px; height:10px;"></i> Private</span>' : '';
+    
+    item.innerHTML = `
+      <div>
+        <div style="font-weight:600;">${strain.name}</div>
+        <div style="font-size:12px; margin-top:4px;">
+          <span class="card-type-badge ${typeClass}" style="position:static; padding:2px 6px;">${strain.type}</span>
+          ${privateBadge}
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary btn-icon edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
+        <button class="btn btn-danger btn-icon del-btn" title="Delete"><i data-lucide="trash-2"></i></button>
+      </div>
+    `;
+    
+    item.querySelector('.edit-btn').addEventListener('click', () => {
+      document.getElementById('user-panel-modal').classList.add('hidden');
+      editStrain(strain);
+    });
+    
+    item.querySelector('.del-btn').addEventListener('click', () => {
+      deleteStrain(strain);
+      item.remove();
+    });
+    
+    container.appendChild(item);
+  });
+  
+  lucide.createIcons();
 }
 
 // Star Rating Input
@@ -684,6 +821,9 @@ function showToast(message, type = 'info') {
 
 // Edit & Delete Handlers
 function editStrain(strain) {
+  if (!canEditStrain(strain)) {
+    return showToast('You do not have permission to edit this strain', 'error');
+  }
   document.getElementById('strain-id').value = strain.id;
   document.getElementById('name').value = strain.name || '';
   document.getElementById('medical_name').value = strain.medical_name || '';
@@ -696,6 +836,7 @@ function editStrain(strain) {
   document.getElementById('price').value = strain.price || '';
   document.getElementById('notes').value = strain.notes || '';
   document.getElementById('image_url').value = strain.image_url || '';
+  document.getElementById('is_private').checked = strain.is_private || false;
   
   setRating(strain.rating || 0);
   
@@ -709,6 +850,9 @@ function editStrain(strain) {
 }
 
 async function deleteStrain(strain) {
+  if (!canEditStrain(strain)) {
+    return showToast('You do not have permission to delete this strain', 'error');
+  }
   if (!confirm(`Are you sure you want to delete "${strain.name}"?`)) return;
   
   try {
@@ -728,6 +872,7 @@ function resetAddForm() {
   if (form) {
     form.reset();
     document.getElementById('strain-id').value = '';
+    document.getElementById('is_private').checked = false;
     setRating(0);
     const header = document.querySelector('#view-add .view-header h1');
     if (header) header.textContent = 'Add New Strain';
