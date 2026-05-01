@@ -625,6 +625,16 @@ function setupForms() {
   document.getElementById('user-panel-close')?.addEventListener('click', () => {
     document.getElementById('user-panel-modal').classList.add('hidden');
   });
+
+  // Admin Panel Handlers
+  document.getElementById('admin-panel-btn')?.addEventListener('click', () => {
+    document.getElementById('admin-panel-modal').classList.remove('hidden');
+    loadAdminStrains();
+  });
+  
+  document.getElementById('admin-panel-close')?.addEventListener('click', () => {
+    document.getElementById('admin-panel-modal').classList.add('hidden');
+  });
 }
 
 function loadUserStrains() {
@@ -675,7 +685,62 @@ function loadUserStrains() {
     container.appendChild(item);
   });
   
-  lucide.createIcons();
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function loadAdminStrains() {
+  const container = document.getElementById('admin-strains-list');
+  container.innerHTML = '';
+  
+  if (!currentUser || !isOwner) return;
+  
+  if (strains.length === 0) {
+    container.innerHTML = '<p class="text-muted">Keine Sorten in der Datenbank vorhanden.</p>';
+    return;
+  }
+  
+  strains.forEach(strain => {
+    const item = document.createElement('div');
+    item.className = 'admin-list-item';
+    item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg-secondary); border-radius:8px;';
+    
+    const typeClass = strain.type === 'Indica' ? 'type-indica' : strain.type === 'Sativa' ? 'type-sativa' : 'type-hybrid';
+    const privateBadge = strain.is_private ? '<span style="font-size:12px; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px; margin-left:8px;"><i data-lucide="lock" style="width:10px; height:10px;"></i> Private</span>' : '';
+    
+    // Check if it's the admin's own strain vs another user's
+    const ownershipInfo = strain.user_id === currentUser.id 
+      ? '<span style="font-size:11px; color:var(--accent);">Deine</span>' 
+      : '<span style="font-size:11px; color:#aaa;">Andere User</span>';
+    
+    item.innerHTML = `
+      <div>
+        <div style="font-weight:600;">${strain.name}</div>
+        <div style="font-size:12px; margin-top:4px;">
+          <span class="card-type-badge ${typeClass}" style="position:static; padding:2px 6px;">${strain.type}</span>
+          ${privateBadge}
+          <span style="margin-left: 8px;">${ownershipInfo}</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary btn-icon edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
+        <button class="btn btn-danger btn-icon del-btn" title="Delete"><i data-lucide="trash-2"></i></button>
+      </div>
+    `;
+    
+    item.querySelector('.edit-btn').addEventListener('click', () => {
+      document.getElementById('admin-panel-modal').classList.add('hidden');
+      editStrain(strain);
+    });
+    
+    item.querySelector('.del-btn').addEventListener('click', () => {
+      deleteStrain(strain);
+      item.remove();
+    });
+    
+    container.appendChild(item);
+  });
+  
+  if (window.lucide) window.lucide.createIcons();
 }
 
 // Star Rating Input
