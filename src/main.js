@@ -2,6 +2,7 @@ import './style.css';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createClient } from '@supabase/supabase-js';
 import { gsap } from 'gsap';
+import placeholderImg from './assets/placeholder.png';
 
 // Setup Tauri Window
 const appWindow = getCurrentWindow();
@@ -221,14 +222,14 @@ function renderStrains() {
       const typeClass = strain.type === 'Indica' ? 'type-indica' : 
                         strain.type === 'Sativa' ? 'type-sativa' : 'type-hybrid';
       
-      const imgUrl = strain.image_url || 'https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&w=400&q=80';
+      const imgSrc = strain.image_url || placeholderImg;
       
       const dateStr = strain.created_at ? new Date(strain.created_at).toLocaleDateString('de-DE') : '';
       const effectsText = strain.effects || 'No effects listed';
 
       card.innerHTML = `
         <div class="card-image-wrap">
-          <img src="${imgUrl}" alt="${strain.name}">
+          <img src="${imgSrc}" alt="${strain.name}" loading="lazy" onerror="this.src='${placeholderImg}'">
           <div class="card-type-badge ${typeClass}">${strain.type}</div>
         </div>
         <div class="card-content">
@@ -316,14 +317,14 @@ function openStrainModal(strain) {
   const typeClass = strain.type === 'Indica' ? 'type-indica' : 
                     strain.type === 'Sativa' ? 'type-sativa' : 'type-hybrid';
   
-  const imgUrl = strain.image_url || 'https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&w=400&q=80';
+  const heroSrc = strain.image_url || placeholderImg;
   
   const effectsTags = strain.effects ? strain.effects.split(',').map(e => `<span class="modal-tag">${e.trim()}</span>`).join('') : '<span class="modal-tag">No effects listed</span>';
   const flavorTags = strain.taste ? strain.taste.split(',').map(f => `<span class="modal-tag">${f.trim()}</span>`).join('') : '<span class="modal-tag">No flavors listed</span>';
 
   body.innerHTML = `
     <div class="modal-hero">
-      <img src="${imgUrl}" alt="${strain.name}">
+      <img src="${heroSrc}" alt="${strain.name}" loading="lazy" onerror="this.src='${placeholderImg}'">
       <div class="modal-hero-gradient"></div>
     </div>
     <div class="modal-details">
