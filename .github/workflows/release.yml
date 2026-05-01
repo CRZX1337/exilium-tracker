@@ -1,5 +1,6 @@
 name: Release
 
+# Triggered when you push a version tag, e.g.: git tag v1.0.0 && git push --tags
 on:
   push:
     tags:
@@ -18,16 +19,17 @@ jobs:
           - platform: windows-latest
             args: ''
           - platform: macos-latest
-            args: '--target aarch64-apple-darwin'   # Apple Silicon
+            args: '--target aarch64-apple-darwin'
           - platform: macos-latest
-            args: '--target x86_64-apple-darwin'    # Intel Mac
+            args: '--target x86_64-apple-darwin'
           - platform: ubuntu-22.04
             args: ''
 
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -50,7 +52,6 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      # Linux only — Tauri braucht diese System-Libraries
       - name: Install Linux system deps
         if: matrix.platform == 'ubuntu-22.04'
         run: |
