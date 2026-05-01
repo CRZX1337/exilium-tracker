@@ -441,6 +441,29 @@ function setupSearchAndFilter() {
 // Forms and Settings
 function setupForms() {
 
+  // Image Upload Preview
+  const imageUpload = document.getElementById('image_upload');
+  const imagePreview = document.getElementById('image_preview');
+  
+  imageUpload?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Bild darf maximal 5MB groß sein', 'error');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreview.innerHTML = `<img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      imagePreview.innerHTML = '<i data-lucide="image" style="color: var(--text-muted);"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  });
+
   document.getElementById('refresh-data-btn')?.addEventListener('click', async () => {
     const btn = document.getElementById('refresh-data-btn');
     const originalText = btn.innerHTML;
@@ -489,6 +512,31 @@ function setupForms() {
     }
     
     try {
+      // Image Upload Logic
+      const imageFile = document.getElementById('image_upload').files[0];
+      if (imageFile) {
+        btn.textContent = 'Lade Bild hoch...';
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${currentUser ? currentUser.id : 'public'}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('strain_images')
+          .upload(filePath, imageFile);
+          
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          throw new Error('Fehler beim Bild-Upload. Existiert der Storage-Bucket "strain_images"? ' + uploadError.message);
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('strain_images')
+          .getPublicUrl(filePath);
+          
+        strainData.image_url = publicUrl;
+      }
+      
+      btn.textContent = strainId ? 'Speichere Daten...' : 'Speichere Daten...';
       if (strainId) {
         const { data, error } = await supabase
           .from('strains')
@@ -646,17 +694,20 @@ function setupForms() {
   });
 
   // Admin Panel Tabs
-  document.getElementById('admin-tab-strains')?.addEventListener('click', (e) => {
-    e.target.style.color = 'var(--accent)';
-    document.getElementById('admin-tab-users').style.color = 'inherit';
+  const tabStrains = document.getElementById('admin-tab-strains');
+  const tabUsers = document.getElementById('admin-tab-users');
+  
+  tabStrains?.addEventListener('click', () => {
+    tabStrains.classList.add('active');
+    tabUsers?.classList.remove('active');
     document.getElementById('admin-section-strains').classList.remove('hidden');
     document.getElementById('admin-section-users').classList.add('hidden');
     loadAdminStrains();
   });
 
-  document.getElementById('admin-tab-users')?.addEventListener('click', (e) => {
-    e.target.style.color = 'var(--accent)';
-    document.getElementById('admin-tab-strains').style.color = 'inherit';
+  tabUsers?.addEventListener('click', () => {
+    tabUsers.classList.add('active');
+    tabStrains?.classList.remove('active');
     document.getElementById('admin-section-users').classList.remove('hidden');
     document.getElementById('admin-section-strains').classList.add('hidden');
     loadAdminUsers();
@@ -1008,7 +1059,19 @@ function editStrain(strain) {
   document.getElementById('importer').value = strain.importer || '';
   document.getElementById('price').value = strain.price || '';
   document.getElementById('notes').value = strain.notes || '';
-  document.getElementById('image_url').value = strain.image_url || '';
+  
+  const imgUrl = strain.image_url || '';
+  document.getElementById('image_url').value = imgUrl;
+  const imagePreview = document.getElementById('image_preview');
+  if (imagePreview) {
+    if (imgUrl) {
+      imagePreview.innerHTML = `<img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover;">`;
+    } else {
+      imagePreview.innerHTML = '<i data-lucide="image" style="color: var(--text-muted);"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+  
   document.getElementById('is_private').checked = strain.is_private || false;
   
   setRating(strain.rating || 0);
@@ -1098,6 +1161,15 @@ function resetAddForm() {
     if (header) header.textContent = 'Add New Strain';
     const btn = document.getElementById('save-strain-btn');
     if (btn) btn.textContent = 'Save Strain';
+    
+    // Clear image upload
+    const imageUpload = document.getElementById('image_upload');
+    if (imageUpload) imageUpload.value = '';
+    const imagePreview = document.getElementById('image_preview');
+    if (imagePreview) {
+      imagePreview.innerHTML = '<i data-lucide="image" style="color: var(--text-muted);"></i>';
+      if (window.lucide) window.lucide.createIcons();
+    }
   }
 }
 
