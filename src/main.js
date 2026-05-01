@@ -24,6 +24,7 @@ document.getElementById('titlebar-close')?.addEventListener('click', () => appWi
 let supabase = null;
 let strains = [];
 let currentRating = 0;
+let currentUser = null;
 
 // Initialize App
 async function init() {
@@ -58,10 +59,38 @@ async function loadSettings() {
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   if (url && key) {
     supabase = createClient(url, key);
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    currentUser = session?.user || null;
+    updateAuthUI();
+    
+    supabase.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      updateAuthUI();
+      if (window.location.hash === '#dashboard' || window.location.hash === '') {
+        renderStrains();
+      }
+    });
+    
     updateConnectionStatus(true);
   } else {
     updateConnectionStatus(false);
     showToast('Supabase not configured', 'error');
+  }
+}
+
+function updateAuthUI() {
+  const authBtnText = document.getElementById('auth-btn-text');
+  const authBtnIcon = document.querySelector('#auth-btn i');
+  if (authBtnText && authBtnIcon) {
+    if (currentUser) {
+      authBtnText.textContent = 'Logout';
+      authBtnIcon.setAttribute('data-lucide', 'log-out');
+    } else {
+      authBtnText.textContent = 'Admin Login';
+      authBtnIcon.setAttribute('data-lucide', 'log-in');
+    }
+    lucide.createIcons();
   }
 }
 
@@ -100,6 +129,11 @@ function handleRoute() {
       { opacity: 0, y: 10, scale: 0.98 }, 
       { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
     );
+  }
+  
+  // Reset form when leaving add view
+  if (hash !== 'add') {
+    resetAddForm();
   }
   
   // Update sidebar active state
@@ -220,6 +254,7 @@ function renderStrains() {
           <div class="card-effects">${effectsText}</div>
           <div class="card-footer">
             <div class="card-date">${dateStr}</div>
+            ${currentUser ? `
             <div class="card-actions">
               <button class="card-action-btn edit" title="Edit">
                 <i data-lucide="pencil"></i>
@@ -228,6 +263,7 @@ function renderStrains() {
                 <i data-lucide="trash-2"></i>
               </button>
             </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -242,6 +278,21 @@ function renderStrains() {
       });
       
       card.addEventListener('click', () => openStrainModal(strain));
+      
+      if (currentUser) {
+        const editBtn = card.querySelector('.edit');
+        const deleteBtn = card.querySelector('.delete');
+        
+        editBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          editStrain(strain);
+        });
+        
+        deleteBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteStrain(strain);
+        });
+      }
       
       grid.appendChild(card);
     });
@@ -382,12 +433,13 @@ function setupForms() {
       return;
     }
     
+    const strainId = document.getElementById('strain-id').value;
     const btn = document.getElementById('save-strain-btn');
     const originalText = btn.textContent;
-    btn.textContent = 'Saving...';
+    btn.textContent = strainId ? 'Updating...' : 'Saving...';
     btn.disabled = true;
     
-    const newStrain = {
+    const strainData = {
       name: document.getElementById('name').value,
       medical_name: document.getElementById('medical_name').value,
       type: document.getElementById('type').value,
@@ -403,17 +455,31 @@ function setupForms() {
     };
     
     try {
-      const { data, error } = await supabase
-        .from('strains')
-        .insert([newStrain])
-        .select();
+      if (strainId) {
+        const { data, error } = await supabase
+          .from('strains')
+          .update(strainData)
+          .eq('id', strainId)
+          .select();
+        if (error) throw error;
         
-      if (error) throw error;
+        const index = strains.findIndex(s => s.id === strainId);
+        if (index !== -1) strains[index] = data[0];
+        
+        showToast('Strain updated successfully', 'success');
+      } else {
+        const { data, error } = await supabase
+          .from('strains')
+          .insert([strainData])
+          .select();
+          
+        if (error) throw error;
+        strains.unshift(data[0]);
+        showToast('Strain added successfully', 'success');
+      }
       
-      strains.unshift(data[0]);
-      showToast('Strain added successfully', 'success');
       e.target.reset();
-      setRating(0);
+      resetAddForm();
       window.location.hash = '#dashboard';
     } catch (err) {
       showToast(err.message, 'error');
@@ -421,6 +487,45 @@ function setupForms() {
     
     btn.textContent = originalText;
     btn.disabled = false;
+  });
+
+  // Auth logic
+  document.getElementById('auth-btn')?.addEventListener('click', async () => {
+    if (currentUser) {
+      await supabase.auth.signOut();
+      showToast('Logged out successfully', 'success');
+    } else {
+      document.getElementById('auth-modal').classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('auth-modal-close')?.addEventListener('click', () => {
+    document.getElementById('auth-modal').classList.add('hidden');
+  });
+
+  document.getElementById('auth-submit-btn')?.addEventListener('click', async () => {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const btn = document.getElementById('auth-submit-btn');
+    
+    if (!email || !password) return showToast('Please enter email and password', 'error');
+    
+    btn.textContent = 'Logging in...';
+    btn.disabled = true;
+    
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    btn.textContent = 'Login';
+    btn.disabled = false;
+    
+    if (error) {
+      showToast(error.message, 'error');
+    } else {
+      showToast('Logged in successfully', 'success');
+      document.getElementById('auth-modal').classList.add('hidden');
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+    }
   });
 }
 
@@ -564,6 +669,60 @@ function showToast(message, type = 'info') {
       onComplete: () => toast.remove()
     });
   }, 3000);
+}
+
+// Edit & Delete Handlers
+function editStrain(strain) {
+  document.getElementById('strain-id').value = strain.id;
+  document.getElementById('name').value = strain.name || '';
+  document.getElementById('medical_name').value = strain.medical_name || '';
+  document.getElementById('type').value = strain.type || 'Indica';
+  document.getElementById('thc').value = strain.thc_content || '';
+  document.getElementById('cbd').value = strain.cbd_content || '';
+  document.getElementById('effects').value = strain.effects || '';
+  document.getElementById('flavor').value = strain.taste || '';
+  document.getElementById('importer').value = strain.importer || '';
+  document.getElementById('price').value = strain.price || '';
+  document.getElementById('notes').value = strain.notes || '';
+  document.getElementById('image_url').value = strain.image_url || '';
+  
+  setRating(strain.rating || 0);
+  
+  const header = document.querySelector('#view-add .view-header h1');
+  if (header) header.textContent = 'Edit Strain';
+  
+  // Custom select needs to be updated
+  document.getElementById('type').dispatchEvent(new Event('change'));
+  
+  window.location.hash = '#add';
+}
+
+async function deleteStrain(strain) {
+  if (!confirm(`Are you sure you want to delete "${strain.name}"?`)) return;
+  
+  try {
+    const { error } = await supabase.from('strains').delete().eq('id', strain.id);
+    if (error) throw error;
+    
+    strains = strains.filter(s => s.id !== strain.id);
+    renderStrains();
+    showToast('Strain deleted', 'success');
+  } catch (err) {
+    showToast('Failed to delete: ' + err.message, 'error');
+  }
+}
+
+function resetAddForm() {
+  const form = document.getElementById('add-strain-form');
+  if (form) {
+    form.reset();
+    document.getElementById('strain-id').value = '';
+    setRating(0);
+    const header = document.querySelector('#view-add .view-header h1');
+    if (header) header.textContent = 'Add New Strain';
+    const btn = document.getElementById('save-strain-btn');
+    if (btn) btn.textContent = 'Save Strain';
+  }
 }
 
 // Start
