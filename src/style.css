@@ -298,7 +298,7 @@ h1 {
   color: var(--text-secondary);
 }
 
-.search-box input {
+.search-box input[type="text"] {
   background: var(--bg-input);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-md);
@@ -310,7 +310,7 @@ h1 {
   outline: none;
 }
 
-.search-box input:focus {
+.search-box input[type="text"]:focus {
   border-color: var(--border-focus);
   box-shadow: 0 0 0 2px var(--accent-glow);
   background: rgba(255,255,255,0.12);
