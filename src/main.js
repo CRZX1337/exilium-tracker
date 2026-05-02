@@ -358,15 +358,26 @@ function openStrainModal(strain) {
   const effectsTags = strain.effects ? strain.effects.split(',').map(e => `<span class="modal-tag">${e.trim()}</span>`).join('') : '<span class="modal-tag">No effects listed</span>';
   const flavorTags = strain.taste ? strain.taste.split(',').map(f => `<span class="modal-tag">${f.trim()}</span>`).join('') : '<span class="modal-tag">No flavors listed</span>';
 
+  const medicalName = strain.medical_name || ''; 
+  const copyBtn = medicalName ? ` 
+    <button class="modal-copy-btn" id="copy-medical-btn" title="Copy medical name" aria-label="Copy medical name"> 
+      <i data-lucide="copy"></i> 
+    </button>` : ''; 
+
   body.innerHTML = `
     <div class="modal-hero">
       <img src="${heroSrc}" alt="${strain.name}" loading="lazy" onerror="this.src='${placeholderImg}'">
       <div class="modal-hero-gradient"></div>
     </div>
     <div class="modal-details">
-      <div class="modal-type-badge ${typeClass}">${strain.type}</div>
-      <h2 class="modal-title">${strain.name}</h2>
-      <div class="modal-medical">${strain.medical_name || ''}</div>
+      <div class="modal-title-row">
+        <h2 class="modal-title">${strain.name}</h2>
+        <div class="modal-type-badge ${typeClass}">${strain.type}</div>
+      </div>
+      <div class="modal-medical-row"> 
+        <span class="modal-medical">${medicalName}</span> 
+        ${copyBtn} 
+      </div> 
       
       <div class="modal-stats-grid">
         <div class="modal-stat-box">
@@ -425,6 +436,24 @@ function openStrainModal(strain) {
   
   lucide.createIcons();
   
+  const copyBtnEl = document.getElementById('copy-medical-btn'); 
+  if (copyBtnEl && medicalName) { 
+    copyBtnEl.addEventListener('click', (e) => { 
+      e.stopPropagation(); 
+      navigator.clipboard.writeText(medicalName).then(() => { 
+        copyBtnEl.classList.add('copied'); 
+        copyBtnEl.innerHTML = '<i data-lucide="check"></i>'; 
+        lucide.createIcons(); 
+        showToast('Medical name copied!', 'success'); 
+        setTimeout(() => { 
+          copyBtnEl.classList.remove('copied'); 
+          copyBtnEl.innerHTML = '<i data-lucide="copy"></i>'; 
+          lucide.createIcons(); 
+        }, 2000); 
+      }).catch(() => showToast('Could not copy to clipboard', 'error')); 
+    }); 
+  } 
+
   modal.classList.remove('hidden');
   gsap.fromTo('.modal-content', 
     { y: 50, scale: 0.95, opacity: 0 },

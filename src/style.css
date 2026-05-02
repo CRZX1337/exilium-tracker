@@ -1030,9 +1030,16 @@ textarea {
 
 .modal-details {
   padding: 32px;
-  margin-top: -80px;
+  margin-top: -10px;
   position: relative;
   z-index: 2;
+}
+
+.modal-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .modal-type-badge {
@@ -1043,14 +1050,12 @@ textarea {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 16px;
   backdrop-filter: blur(8px);
 }
 
 .modal-title {
   font-size: 36px;
   font-weight: 700;
-  margin-bottom: 8px;
   line-height: 1.1;
   text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
@@ -1058,9 +1063,70 @@ textarea {
 .modal-medical {
   color: var(--text-secondary);
   font-size: 16px;
-  margin-bottom: 24px;
   font-style: italic;
+  margin: 0;
 }
+
+.modal-medical-row { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  margin-bottom: 24px; 
+} 
+
+.modal-copy-btn { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  width: 28px; 
+  height: 28px; 
+  padding: 0; 
+  border-radius: 6px; 
+  background: rgba(255, 255, 255, 0.06); 
+  border: 1px solid rgba(255, 255, 255, 0.1); 
+  color: var(--text-muted); 
+  cursor: pointer; 
+  flex-shrink: 0; 
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease; 
+} 
+
+.modal-copy-btn:hover { 
+  background: rgba(255, 255, 255, 0.12); 
+  border-color: rgba(255, 255, 255, 0.2); 
+  color: var(--text-primary); 
+  transform: scale(1.08); 
+} 
+
+.modal-copy-btn:active { 
+  transform: scale(0.92); 
+  background: rgba(255, 255, 255, 0.18); 
+} 
+
+.modal-copy-btn.copied { 
+  background: rgba(16, 185, 129, 0.15); 
+  border-color: rgba(16, 185, 129, 0.45); 
+  color: #10b981; 
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25); 
+  animation: copyPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
+} 
+
+@keyframes copyPop { 
+  0%   { transform: scale(1); } 
+  40%  { transform: scale(1.22); } 
+  70%  { transform: scale(0.95); } 
+  100% { transform: scale(1); } 
+} 
+
+.modal-copy-btn svg { 
+  width: 14px; 
+  height: 14px; 
+  pointer-events: none; 
+  transition: transform 0.2s ease; 
+} 
+
+.modal-copy-btn:hover svg { 
+  transform: scale(1.15); 
+} 
 
 .modal-stats-grid {
   display: grid;
