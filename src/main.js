@@ -38,6 +38,12 @@ async function init() {
   setupForms();
   setupSearchAndFilter();
   setupCustomSelects();
+
+  document.addEventListener('keydown', (e) => { 
+    if (e.key === 'Escape') { 
+      forceResetModalOverlays();
+    } 
+  });
   
   // Empty state floating animation
   gsap.to('.floating-logo', {
@@ -134,9 +140,16 @@ function setupRouting() {
 }
 
 function closeAllModals() {
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
-    modal.classList.add('hidden');
+  forceResetModalOverlays();
+}
+
+function forceResetModalOverlays() {
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.classList.add('hidden');
+    el.classList.remove('active');
   });
+  document.body.style.overflow = '';
+  document.body.classList.remove('modal-open', 'overflow-hidden', 'blur-active');
 }
 
 function handleRoute() {
@@ -349,6 +362,7 @@ function renderStrains() {
 function openStrainModal(strain) {
   const modal = document.getElementById('strain-modal');
   const body = document.getElementById('modal-body');
+  const modalContent = modal?.querySelector('.modal-content');
   
   const typeClass = strain.type === 'Indica' ? 'type-indica' : 
                     strain.type === 'Sativa' ? 'type-sativa' : 'type-hybrid';
@@ -455,7 +469,7 @@ function openStrainModal(strain) {
   } 
 
   modal.classList.remove('hidden');
-  gsap.fromTo('.modal-content', 
+  gsap.fromTo(modalContent, 
     { y: 50, scale: 0.95, opacity: 0 },
     { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.5)' }
   );
@@ -463,7 +477,8 @@ function openStrainModal(strain) {
 
 function closeStrainModal() {
   const modal = document.getElementById('strain-modal');
-  gsap.to('.modal-content', {
+  const modalContent = modal?.querySelector('.modal-content');
+  gsap.to(modalContent, {
     y: 20, scale: 0.95, opacity: 0, duration: 0.2, ease: 'power2.in',
     onComplete: () => {
       modal.classList.add('hidden');
@@ -723,8 +738,19 @@ function setupForms() {
   // Admin Panel Handlers
   document.getElementById('admin-panel-btn')?.addEventListener('click', (e) => {
     e.preventDefault();
-    document.getElementById('admin-panel-modal').classList.remove('hidden');
-    loadAdminStrains();
+    
+    // Force-close any stuck modal overlays before opening admin panel 
+    forceResetModalOverlays();
+
+    try {
+      const adminPanelModal = document.getElementById('admin-panel-modal');
+      adminPanelModal.classList.remove('hidden');
+      loadAdminStrains();
+    } catch (err) {
+      console.error('[AdminPanel] Failed to open:', err); 
+      // Reset everything on failure 
+      forceResetModalOverlays();
+    }
   });
   
   document.getElementById('admin-panel-close')?.addEventListener('click', () => {

@@ -949,6 +949,7 @@ textarea {
 .modal-overlay.hidden {
   opacity: 0;
   pointer-events: none;
+  display: none;
 }
 
 .modal-content {
