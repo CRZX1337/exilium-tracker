@@ -374,7 +374,13 @@ function openStrainModal(strain) {
           <span class="value" style="font-size: 18px;">
             ${(strain.rating || 0).toFixed(1)} 
             <span style="display:flex; margin-left:6px; gap:2px;">
-              ${[1,2,3,4,5].map(i => `<i data-lucide="star" style="width:14px; height:14px; ${i <= (strain.rating || 0) ? 'fill:var(--star); color:var(--star);' : 'color:var(--text-muted);'}"></i>`).join('')}
+              ${[1,2,3,4,5].map(i => {
+                const r = strain.rating || 0;
+                const isFull = i <= Math.floor(r);
+                const isHalf = i === Math.ceil(r) && r % 1 !== 0;
+                const overlayWidth = isFull ? '100%' : (isHalf ? '50%' : '0%');
+                return `<span style="position:relative;display:inline-block;width:14px;height:14px;"><i data-lucide="star" style="width:14px; height:14px; color:var(--text-muted); fill:none;"></i>${(isFull || isHalf) ? `<div style="position:absolute;top:0;left:0;width:${overlayWidth};height:100%;overflow:hidden;"><i data-lucide="star" style="min-width:14px; width:14px; height:14px; fill:var(--star); color:var(--star);"></i></div>` : ''}</span>`;
+              }).join('')}
             </span>
           </span>
         </div>
@@ -921,6 +927,7 @@ function setupStarRating() {
     const star = document.createElement('div');
     star.innerHTML = `<i data-lucide="star"></i>`;
     star.dataset.value = i;
+    star.style.position = 'relative';
     star.addEventListener('click', (e) => {
       // Logic for half stars based on click position
       const rect = star.getBoundingClientRect();
@@ -957,17 +964,31 @@ function setupStarRating() {
 function setRating(rating) {
   currentRating = rating;
   document.getElementById('rating').value = rating;
-  const stars = document.getElementById('star-rating-input').querySelectorAll('svg');
-  stars.forEach((star, idx) => {
+  const starDivs = document.getElementById('star-rating-input').querySelectorAll('div[data-value]');
+  starDivs.forEach((starDiv, idx) => {
+    const existingOverlay = starDiv.querySelector('.half-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    const svg = starDiv.querySelector('svg');
     if (idx < Math.floor(rating)) {
-      star.classList.add('active');
+      svg.classList.add('active');
     } else if (idx === Math.floor(rating) && rating % 1 !== 0) {
-      // Handle half star visual if supported by SVG, or just full for now
-      star.classList.add('active');
-      star.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0% 100%)';
+      svg.classList.remove('active');
+      const overlay = document.createElement('div');
+      overlay.className = 'half-overlay';
+      overlay.style.position = 'absolute';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '50%';
+      overlay.style.height = '100%';
+      overlay.style.overflow = 'hidden';
+      const clone = svg.cloneNode(true);
+      clone.classList.add('active');
+      clone.style.minWidth = '24px';
+      overlay.appendChild(clone);
+      starDiv.appendChild(overlay);
     } else {
-      star.classList.remove('active');
-      star.style.clipPath = 'none';
+      svg.classList.remove('active');
     }
   });
 }
