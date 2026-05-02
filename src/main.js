@@ -56,6 +56,24 @@ async function init() {
     lb.addEventListener('click', (e) => {
       if (e.target === lb || e.target.closest('#lightbox-close')) closeLightbox();
     });
+
+    // Add mousewheel zoom functionality
+    lb.addEventListener('wheel', (e) => {
+      if (!lb.classList.contains('active')) return;
+      e.preventDefault();
+      
+      const img = document.getElementById('lightbox-img');
+      if (!img) return;
+      
+      const zoomStep = 0.2;
+      if (e.deltaY < 0) {
+        lightboxZoom = Math.min(lightboxZoom + zoomStep, 4);
+      } else {
+        lightboxZoom = Math.max(lightboxZoom - zoomStep, 1);
+      }
+      
+      img.style.transform = `scale(${lightboxZoom})`;
+    }, { passive: false });
   }
 
   document.addEventListener('keydown', (e) => { 
