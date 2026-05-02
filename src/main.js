@@ -681,7 +681,8 @@ function setupForms() {
   document.getElementById('auth-password')?.addEventListener('keydown', handleAuthEnter);
   
   // User Panel Handlers
-  document.getElementById('user-panel-btn')?.addEventListener('click', () => {
+  document.getElementById('user-panel-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
     document.getElementById('user-panel-modal').classList.remove('hidden');
     loadUserStrains();
   });
@@ -691,7 +692,8 @@ function setupForms() {
   });
 
   // Admin Panel Handlers
-  document.getElementById('admin-panel-btn')?.addEventListener('click', () => {
+  document.getElementById('admin-panel-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
     document.getElementById('admin-panel-modal').classList.remove('hidden');
     loadAdminStrains();
   });
