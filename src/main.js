@@ -1484,7 +1484,8 @@ function initCursor() {
 
   const ICONS = {
     edit: `<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
-    delete: `<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>`
+    delete: `<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>`,
+    text: `<line x1="12" y1="3" x2="12" y2="21" stroke-width="2"/><line x1="9" y1="3" x2="15" y2="3" stroke-width="2"/><line x1="9" y1="21" x2="15" y2="21" stroke-width="2"/>`
   };
 
   document.addEventListener('mousemove', (e) => {
@@ -1494,7 +1495,14 @@ function initCursor() {
 
   function setCursorMode(mode, iconKey = null) {
     cursor.className = '';
-    if (mode === 'icon' && iconKey) {
+    if (mode === 'text') {
+      cursor.classList.add('mode-icon', 'mode-text');
+      iconSvg.innerHTML = ICONS.text;
+      iconSvg.style.marginTop = '12px';
+      iconSvg.style.marginLeft = '12px';
+    } else if (mode === 'icon' && iconKey) {
+      iconSvg.style.marginTop = '12px';
+      iconSvg.style.marginLeft = '12px';
       cursor.classList.add('mode-icon');
       iconSvg.innerHTML = ICONS[iconKey];
     } else if (mode === 'pointer') {
@@ -1505,18 +1513,24 @@ function initCursor() {
   document.addEventListener('mouseover', (e) => {
     const el = e.target;
 
+    // Delete Button
     if (el.closest('.card-action-btn.delete')) {
+      cursor.style.opacity = '1';
       setCursorMode('icon', 'delete');
       return;
     }
 
+    // Edit Button
     if (el.closest('.card-action-btn')) {
+      cursor.style.opacity = '1';
       setCursorMode('icon', 'edit');
       return;
     }
 
-    if (el.closest('input, textarea')) {
-      cursor.style.opacity = '0';
+    // Input / Textarea / Select → custom I-Beam
+    if (el.closest('input, textarea, select')) {
+      cursor.style.opacity = '1';
+      setCursorMode('text');
       return;
     }
 
