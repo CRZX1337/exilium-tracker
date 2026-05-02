@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "exilium-weed-programm",
-  "version": "0.1.0",
+  "productName": "Exilium Tracker",
+  "version": "0.2.0",
   "identifier": "dev.crzx.exilium-tracker",
   "build": {
     "frontendDist": "../dist",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Exilium - Strain Tracker",
+        "title": "Exilium Tracker",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
