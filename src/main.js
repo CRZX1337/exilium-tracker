@@ -426,6 +426,48 @@ function renderStrains() {
 
     lucide.createIcons();
 
+    // Custom Upload Button Logic
+    const uploadZone = document.getElementById('upload-dropzone');
+    const uploadBtn = document.getElementById('upload-trigger-btn');
+    const uploadInput = document.getElementById('image_upload');
+    const uploadFilename = document.getElementById('upload-filename');
+
+    if (uploadBtn && uploadInput) {
+      // Click auf Button oder gesamte Zone öffnet File-Dialog
+      uploadZone.addEventListener('click', () => uploadInput.click());
+      uploadBtn.addEventListener('click', (e) => { e.stopPropagation(); uploadInput.click(); });
+
+      // Dateiname anzeigen wenn Datei gewählt
+      uploadInput.addEventListener('change', () => {
+        const file = uploadInput.files[0];
+        uploadFilename.textContent = file ? file.name : 'Keine Datei ausgewählt';
+        uploadFilename.style.color = file ? 'var(--text-primary)' : 'var(--text-muted)';
+      });
+
+      // Drag & Drop hover effect
+      uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = 'var(--accent)';
+        uploadZone.style.background = 'rgba(16,185,129,0.06)';
+      });
+      uploadZone.addEventListener('dragleave', () => {
+        uploadZone.style.borderColor = '';
+        uploadZone.style.background = '';
+      });
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = '';
+        uploadZone.style.background = '';
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          uploadInput.files = dt.files;
+          uploadInput.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+
     // Animate cards in
     gsap.fromTo('.strain-card',
       { opacity: 0, y: 20 },
