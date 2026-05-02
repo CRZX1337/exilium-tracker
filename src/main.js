@@ -246,6 +246,7 @@ function renderStrains() {
   const emptyState = document.getElementById('empty-state');
   const searchInput = document.getElementById('search-input').value.toLowerCase();
   const typeFilter = document.getElementById('type-filter').value;
+  const sortValue = document.getElementById('filter-sort')?.value || 'newest';
   
   grid.innerHTML = '';
   
@@ -255,6 +256,16 @@ function renderStrains() {
     const matchesType = typeFilter === 'all' || strain.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  if (sortValue === 'newest') {
+    filteredStrains.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  } else if (sortValue === 'rating') {
+    filteredStrains.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (sortValue === 'name') {
+    filteredStrains.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } else if (sortValue === 'thc') {
+    filteredStrains.sort((a, b) => (parseFloat(b.thc_content ?? b.thc) || 0) - (parseFloat(a.thc_content ?? a.thc) || 0));
+  }
 
   if (filteredStrains.length === 0) {
     emptyState.classList.remove('hidden');
@@ -495,6 +506,7 @@ document.getElementById('strain-modal')?.addEventListener('click', (e) => {
 function setupSearchAndFilter() {
   document.getElementById('search-input')?.addEventListener('input', renderStrains);
   document.getElementById('type-filter')?.addEventListener('change', renderStrains);
+  document.getElementById('filter-sort')?.addEventListener('change', () => renderStrains());
 }
 
 // Forms and Settings
