@@ -39,8 +39,31 @@ async function init() {
   setupSearchAndFilter();
   setupCustomSelects();
 
+  // Initialize lightbox
+  if (!document.getElementById('lightbox-overlay')) {
+    const lb = document.createElement('div');
+    lb.id = 'lightbox-overlay';
+    lb.innerHTML = `
+      <button id="lightbox-close" aria-label="Close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <img id="lightbox-img" src="" alt="Strain image">
+    `;
+    document.body.appendChild(lb);
+
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb || e.target.closest('#lightbox-close')) closeLightbox();
+    });
+  }
+
   document.addEventListener('keydown', (e) => { 
-    if (e.key === 'Escape') { 
+    if (e.key === 'Escape') {
+      if (document.getElementById('lightbox-overlay')?.classList.contains('active')) {
+        closeLightbox();
+        return;
+      }
       forceResetModalOverlays();
     } 
   });
@@ -240,6 +263,30 @@ function canEditStrain(strain) {
   return strain.user_id === currentUser.id;
 }
 
+// Lightbox Functions
+let lightboxZoom = 1;
+
+function openLightbox(src, alt = '') {
+  const overlay = document.getElementById('lightbox-overlay');
+  const img = document.getElementById('lightbox-img');
+  if (!overlay || !img) return;
+  
+  lightboxZoom = 1;
+  img.src = src;
+  img.alt = alt;
+  img.style.transform = 'scale(1)';
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  const overlay = document.getElementById('lightbox-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+  lightboxZoom = 1;
+}
+
 // Render Strains
 function renderStrains() {
   const grid = document.getElementById('strain-grid');
@@ -391,7 +438,7 @@ function openStrainModal(strain) {
 
   body.innerHTML = `
     <div class="modal-hero">
-      <img src="${heroSrc}" alt="${strain.name}" loading="lazy" onerror="this.src='${placeholderImg}'">
+      <img id="modal-hero-img" src="${heroSrc}" alt="${strain.name}" loading="lazy" onerror="this.src='${placeholderImg}'" style="cursor: zoom-in;">
       <div class="modal-hero-gradient"></div>
     </div>
     <div class="modal-details">
@@ -460,6 +507,16 @@ function openStrainModal(strain) {
   `;
   
   lucide.createIcons();
+  
+  // Add lightbox click handler to modal hero image with setTimeout to ensure DOM is ready
+  setTimeout(() => {
+    const heroImg = document.getElementById('modal-hero-img');
+    if (heroImg) {
+      heroImg.addEventListener('click', () => {
+        openLightbox(heroSrc, strain.name);
+      });
+    }
+  }, 0);
   
   const copyBtnEl = document.getElementById('copy-medical-btn'); 
   if (copyBtnEl && medicalName) { 
