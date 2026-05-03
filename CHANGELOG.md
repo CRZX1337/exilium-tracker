@@ -7,7 +7,7 @@ Every commit has been reviewed and categorized per release.
 
 ## [0.3.5] 🪄 Polished — 2026-05-02
 
-> Zwischenrelease focused on UI polish, quality-of-life improvements, and cleaner interactions.
+> Little release focused on UI polish, quality-of-life improvements, and cleaner interactions.
 
 ### ✨ Features
 - **Custom Image Upload Button** — Native browser file input replaced with a fully custom styled button and drag-and-drop zone for strain images with hover feedback (`feat: implement main.js and expand dashboard UI`)
