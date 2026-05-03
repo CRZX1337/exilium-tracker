@@ -320,7 +320,7 @@ function handleRoute() {
   if (hash === 'dashboard') {
     renderStrains();
   } else if (hash === 'statistics') {
-    updateStatistics();
+    renderStatistics(strains);
   }
 }
 
@@ -352,6 +352,8 @@ async function fetchStrains() {
     strains = data || [];
     if (window.location.hash === '#dashboard' || window.location.hash === '') {
       renderStrains();
+    } else if (window.location.hash === '#statistics') {
+      renderStatistics(strains);
     }
   } catch (err) {
     showToast('Failed to fetch strains: ' + err.message, 'error');
@@ -1346,52 +1348,113 @@ function setRating(rating) {
 }
 
 // Statistics
-function updateStatistics() {
-  if (!strains.length) return;
+let chartInstances = {};
 
-  const total = strains.length;
-  const avgRating = strains.reduce((acc, s) => acc + s.rating, 0) / total;
-  const avgThc = strains.reduce((acc, s) => acc + (s.thc_content || 0), 0) / total;
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+}
 
-  gsap.to('#stat-total', { innerHTML: total, duration: 1.5, snap: { innerHTML: 1 }, ease: 'power2.out' });
-  gsap.to('#stat-avg-rating', { innerHTML: avgRating.toFixed(1), duration: 1.5, snap: { innerHTML: 0.1 }, ease: 'power2.out' });
-  gsap.to('#stat-avg-thc', { innerHTML: avgThc.toFixed(1), duration: 1.5, snap: { innerHTML: 0.1 }, ease: 'power2.out' });
+function renderStatistics(strainsList) {
+  if (!strainsList) return;
+  destroyCharts();
 
-  const indicaCount = strains.filter(s => s.type === 'Indica').length;
-  const sativaCount = strains.filter(s => s.type === 'Sativa').length;
-  const hybridCount = strains.filter(s => s.type === 'Hybrid').length;
+  // KPIs
+  document.getElementById('kpi-total').textContent = strainsList.length;
+  const avgRating = strainsList.length ? (strainsList.reduce((s, x) => s + (x.rating || 0), 0) / strainsList.length).toFixed(1) : '0.0';
+  document.getElementById('kpi-avg-rating').textContent = avgRating + ' ★';
+  const avgThc = strainsList.length ? Math.round(strainsList.reduce((s, x) => s + (parseFloat(x.thc_content || x.thc) || 0), 0) / strainsList.length) : 0;
+  document.getElementById('kpi-avg-thc').textContent = avgThc + '%';
+  const typeCounts = strainsList.reduce((acc, x) => { acc[x.type] = (acc[x.type] || 0) + 1; return acc; }, {});
+  const topType = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0];
+  document.getElementById('kpi-top-type').textContent = topType ? topType[0] : '—';
 
-  const iPct = (indicaCount / total) * 100;
-  const sPct = (sativaCount / total) * 100;
-  const hPct = (hybridCount / total) * 100;
+  // Chart defaults (dark theme)
+  Chart.defaults.color = '#888';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
 
-  document.getElementById('dist-indica').style.width = `${iPct}%`;
-  document.getElementById('dist-sativa').style.width = `${sPct}%`;
-  document.getElementById('dist-hybrid').style.width = `${hPct}%`;
+  // Chart 1 — Doughnut: Typ-Verteilung
+  const typeLabels = ['Hybrid', 'Indica', 'Sativa', 'CBD'];
+  const typeColors = ['#10b981', '#8b5cf6', '#f59e0b', '#3b82f6'];
+  const chartTypesElement = document.getElementById('chart-types');
+  if (chartTypesElement) {
+    chartInstances.types = new Chart(chartTypesElement, {
+      type: 'doughnut',
+      data: {
+        labels: typeLabels,
+        datasets: [{
+          data: typeLabels.map(t => typeCounts[t] || 0),
+          backgroundColor: typeColors,
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { color: '#aaa', padding: 16, font: { size: 13 } } }
+        },
+        cutout: '65%'
+      }
+    });
+  }
 
-  gsap.to('#dist-indica-val', { innerHTML: Math.round(iPct), duration: 1, snap: { innerHTML: 1 } });
-  gsap.to('#dist-sativa-val', { innerHTML: Math.round(sPct), duration: 1, snap: { innerHTML: 1 } });
-  gsap.to('#dist-hybrid-val', { innerHTML: Math.round(hPct), duration: 1, snap: { innerHTML: 1 } });
+  // Chart 2 — Horizontal Bar: Top 10 THC
+  const thcSorted = [...strainsList].sort((a,b) => (parseFloat(b.thc_content || b.thc)||0) - (parseFloat(a.thc_content || a.thc)||0)).slice(0,10);
+  const chartThcElement = document.getElementById('chart-thc');
+  if (chartThcElement) {
+    chartInstances.thc = new Chart(chartThcElement, {
+      type: 'bar',
+      data: {
+        labels: thcSorted.map(s => s.name),
+        datasets: [{
+          label: 'THC %',
+          data: thcSorted.map(s => parseFloat(s.thc_content || s.thc) || 0),
+          backgroundColor: 'rgba(16, 185, 129, 0.7)', // var(--accent) with opacity
+          borderColor: '#10b981', // var(--accent)
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, max: 40, ticks: { callback: v => v + '%' } },
+          y: { ticks: { font: { size: 12 } } }
+        }
+      }
+    });
+  }
 
-  // Top Rated Strain
-  const topStrain = [...strains].sort((a, b) => b.rating - a.rating)[0];
-  if (topStrain) {
-    const typeClass = topStrain.type === 'Indica' ? 'type-indica' : topStrain.type === 'Sativa' ? 'type-sativa' : 'type-hybrid';
-    document.getElementById('top-strain-container').innerHTML = `
-      <div style="display:flex; align-items:center; gap: 16px;">
-        <div style="width: 60px; height: 60px; border-radius: 8px; overflow: hidden;">
-           <img src="${topStrain.image_url || 'https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&w=400&q=80'}" style="width:100%; height:100%; object-fit:cover;">
-        </div>
-        <div>
-          <div style="font-weight: 600; font-size: 18px;">${topStrain.name}</div>
-          <div style="color: var(--text-secondary); font-size: 13px; margin-top:4px;">
-            <span class="card-type-badge ${typeClass}" style="position:static; padding: 2px 8px;">${topStrain.type}</span>
-            <span style="margin-left:8px; color:var(--star);"><i data-lucide="star" style="width:12px; height:12px; fill:var(--star)"></i> ${topStrain.rating.toFixed(1)}</span>
-          </div>
-        </div>
-      </div>
-    `;
-    lucide.createIcons();
+  // Chart 3 — Horizontal Bar: Top 10 Bewertungen
+  const ratedSorted = [...strainsList].filter(s => s.rating > 0).sort((a,b) => b.rating - a.rating).slice(0,10);
+  const chartRatingsElement = document.getElementById('chart-ratings');
+  if (chartRatingsElement) {
+    chartInstances.ratings = new Chart(chartRatingsElement, {
+      type: 'bar',
+      data: {
+        labels: ratedSorted.map(s => s.name),
+        datasets: [{
+          label: 'Bewertung',
+          data: ratedSorted.map(s => s.rating),
+          backgroundColor: 'rgba(245, 158, 11, 0.7)', // var(--star) with opacity
+          borderColor: '#f59e0b', // var(--star)
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, max: 5, ticks: { callback: v => v + ' ★' } },
+          y: { ticks: { font: { size: 12 } } }
+        }
+      }
+    });
   }
 }
 

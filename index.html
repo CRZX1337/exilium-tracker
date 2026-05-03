@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -265,51 +266,30 @@
       <!-- Statistics View -->
       <div class="view hidden" id="view-statistics">
         <header class="view-header">
-          <h1>Collection Stats</h1>
+          <h1>Statistiken</h1>
         </header>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h3>Total Strains</h3>
-            <div class="stat-value" id="stat-total">0</div>
-          </div>
-          <div class="stat-card">
-            <h3>Average Rating</h3>
-            <div class="stat-value"><span id="stat-avg-rating">0.0</span> <i data-lucide="star" class="star-icon"></i>
-            </div>
-          </div>
-          <div class="stat-card">
-            <h3>Average THC</h3>
-            <div class="stat-value"><span id="stat-avg-thc">0.0</span>%</div>
-          </div>
+       
+        <!-- KPI Row -->
+        <div class="stats-kpi-row">
+          <div class="kpi-card"><span class="kpi-value" id="kpi-total">0</span><span class="kpi-label">Sorten gesamt</span></div>
+          <div class="kpi-card"><span class="kpi-value" id="kpi-avg-rating">0.0</span><span class="kpi-label">Ø Bewertung</span></div>
+          <div class="kpi-card"><span class="kpi-value" id="kpi-avg-thc">0%</span><span class="kpi-label">Ø THC</span></div>
+          <div class="kpi-card"><span class="kpi-value" id="kpi-top-type">—</span><span class="kpi-label">Häufigster Typ</span></div>
         </div>
 
-        <div class="stats-row mt-6">
-          <div class="stat-box flex-1">
-            <h3>Type Distribution</h3>
-            <div class="distribution-bar-container">
-              <div class="distribution-bar">
-                <div class="dist-segment type-indica" id="dist-indica" style="width: 0%"></div>
-                <div class="dist-segment type-sativa" id="dist-sativa" style="width: 0%"></div>
-                <div class="dist-segment type-hybrid" id="dist-hybrid" style="width: 0%"></div>
-              </div>
-              <div class="dist-legend">
-                <div class="legend-item">
-                  <div class="dot type-indica"></div> Indica (<span id="dist-indica-val">0</span>%)
-                </div>
-                <div class="legend-item">
-                  <div class="dot type-sativa"></div> Sativa (<span id="dist-sativa-val">0</span>%)
-                </div>
-                <div class="legend-item">
-                  <div class="dot type-hybrid"></div> Hybrid (<span id="dist-hybrid-val">0</span>%)
-                </div>
-              </div>
-            </div>
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3 class="chart-title">Typ-Verteilung</h3>
+            <div class="chart-wrapper"><canvas id="chart-types"></canvas></div>
           </div>
-          <div class="stat-box flex-1">
-            <h3>Top Rated Strain</h3>
-            <div id="top-strain-container">
-              <p class="text-muted">No data available.</p>
-            </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Top 10 THC-Gehalt</h3>
+            <div class="chart-wrapper"><canvas id="chart-thc"></canvas></div>
+          </div>
+          <div class="chart-card chart-card--wide">
+            <h3 class="chart-title">Top 10 Bewertungen</h3>
+            <div class="chart-wrapper"><canvas id="chart-ratings"></canvas></div>
           </div>
         </div>
       </div>

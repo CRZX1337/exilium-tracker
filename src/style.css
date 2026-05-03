@@ -1582,3 +1582,15 @@ textarea {
   height: 16px;
   filter: drop-shadow(0 0 5px rgba(16, 185, 129, 1)) drop-shadow(0 0 10px rgba(16, 185, 129, 0.6));
 }
+
+/* ===== STATISTICS VIEW ===== */
+.stats-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi-card { background: var(--bg-card, #1a1a2e); border: 1px solid var(--border-subtle, #2a2a3e); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+.kpi-value { font-size: 2rem; font-weight: 700; color: var(--accent-primary, #00ff88); line-height: 1; }
+.kpi-label { font-size: 0.8rem; color: var(--text-secondary, #888); text-transform: uppercase; letter-spacing: 0.05em; }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.chart-card { background: var(--bg-card, #1a1a2e); border: 1px solid var(--border-subtle, #2a2a3e); border-radius: 12px; padding: 20px; }
+.chart-card--wide { grid-column: 1 / -1; }
+.chart-title { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary, #888); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+.chart-wrapper { position: relative; height: 280px; }
+.chart-card--wide .chart-wrapper { height: 220px; }
