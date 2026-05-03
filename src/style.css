@@ -561,6 +561,41 @@ select:focus {
   opacity: 1;
 }
 
+/* Favorites heart button — isolated from .card-action-btn to prevent icon bleed */
+.btn-favorite {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0.55;
+  transition: opacity 200ms ease, background 200ms ease, transform 200ms ease;
+  flex-shrink: 0;
+}
+
+.strain-card:hover .btn-favorite {
+  opacity: 1;
+}
+
+.btn-favorite:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  transform: scale(1.12);
+}
+
+.btn-favorite svg {
+  display: block;
+  transition: transform 200ms ease;
+}
+
+.btn-favorite:hover svg {
+  transform: scale(1.15);
+}
+
 .card-action-btn {
   background: none;
   border: none;
@@ -581,6 +616,42 @@ select:focus {
 .card-action-btn.delete:hover {
   color: var(--danger);
   background: rgba(239, 68, 68, 0.1);
+}
+
+/* Favorites Filter Button */
+.fav-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+}
+
+.fav-filter-btn:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--text-primary);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.fav-filter-btn.filter-active {
+  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+
+.fav-filter-btn.filter-active svg {
+  fill: #ef4444;
+  stroke: #ef4444;
 }
 
 .card-effects {

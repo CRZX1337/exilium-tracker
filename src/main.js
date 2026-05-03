@@ -29,6 +29,72 @@ let currentUser = null;
 let isOwner = false;
 let isUser = false;
 
+// ===== FAVORITES MODULE =====
+const Favorites = {
+  state: [], // cached array of favorited strain IDs
+
+  async load() {
+    if (!supabase || !currentUser) {
+      this.state = [];
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('strain_id')
+        .eq('user_id', currentUser.id);
+      if (error) throw error;
+      this.state = (data || []).map(row => row.strain_id);
+    } catch (err) {
+      console.error('[Favorites] load error:', err.message);
+      this.state = [];
+    }
+  },
+
+  async toggle(strainId) {
+    if (!supabase || !currentUser) return;
+    const isFav = this.isFavorite(strainId);
+    // Optimistic update
+    if (isFav) {
+      this.state = this.state.filter(id => id !== strainId);
+    } else {
+      this.state = [...this.state, strainId];
+    }
+    try {
+      if (isFav) {
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('strain_id', strainId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('favorites')
+          .insert([{ user_id: currentUser.id, strain_id: strainId }]);
+        if (error) throw error;
+      }
+    } catch (err) {
+      // Rollback optimistic update on failure
+      if (isFav) {
+        this.state = [...this.state, strainId];
+      } else {
+        this.state = this.state.filter(id => id !== strainId);
+      }
+      throw err;
+    }
+  },
+
+  isFavorite(strainId) {
+    return this.state.includes(strainId);
+  }
+};
+
+// App state for UI filters
+const appState = {
+  showFavoritesOnly: false
+};
+
 // Initialize App
 async function init() {
   lucide.createIcons();
@@ -112,10 +178,23 @@ async function loadSettings() {
 
     const { data: { session } } = await supabase.auth.getSession();
     currentUser = session?.user || null;
+    if (currentUser) {
+      await Favorites.load();
+    }
     updateAuthUI();
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      const wasLoggedIn = !!currentUser;
       currentUser = session?.user || null;
+      if (currentUser) {
+        await Favorites.load();
+      } else if (wasLoggedIn) {
+        // Logout: reset favorites state and filter
+        Favorites.state = [];
+        appState.showFavoritesOnly = false;
+        const favBtn = document.getElementById('fav-filter-btn');
+        if (favBtn) favBtn.classList.remove('filter-active');
+      }
       updateAuthUI();
       if (window.location.hash === '#dashboard' || window.location.hash === '') {
         renderStrains();
@@ -157,6 +236,10 @@ function updateAuthUI() {
 
   const userPanelBtn = document.getElementById('user-panel-btn');
   if (userPanelBtn) userPanelBtn.style.display = isUser ? 'flex' : 'none';
+
+  // Show/hide favorites filter button based on auth state
+  const favFilterBtn = document.getElementById('fav-filter-btn');
+  if (favFilterBtn) favFilterBtn.style.display = currentUser ? 'flex' : 'none';
 
   if (window.lucide) window.lucide.createIcons();
 }
@@ -319,7 +402,8 @@ function renderStrains() {
     const matchesSearch = strain.name.toLowerCase().includes(searchInput) ||
       (strain.medical_name && strain.medical_name.toLowerCase().includes(searchInput));
     const matchesType = typeFilter === 'all' || strain.type === typeFilter;
-    return matchesSearch && matchesType;
+    const matchesFav = !appState.showFavoritesOnly || Favorites.isFavorite(strain.id);
+    return matchesSearch && matchesType && matchesFav;
   });
 
   if (sortValue === 'newest') {
@@ -381,19 +465,28 @@ function renderStrains() {
           <div class="card-effects">${effectsText}</div>
           <div class="card-footer">
             <div class="card-date">${dateStr}</div>
-            ${canEditStrain(strain) ? `
             <div class="card-actions">
+              ${currentUser ? `
+              <button class="btn-favorite" title="${Favorites.isFavorite(strain.id) ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzuf\u00fcgen'}" aria-label="${Favorites.isFavorite(strain.id) ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzuf\u00fcgen'}" onclick="window.App.toggleFavorite('${strain.id}'); event.stopPropagation()">
+                ${Favorites.isFavorite(strain.id)
+                  ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+                  : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+                }
+              </button>
+              ` : ''}
+              ${canEditStrain(strain) ? `
               <button class="card-action-btn edit" title="Edit">
                 <i data-lucide="pencil"></i>
               </button>
               <button class="card-action-btn delete" title="Delete">
                 <i data-lucide="trash-2"></i>
               </button>
+              ` : ''}
             </div>
-            ` : ''}
           </div>
         </div>
       `;
+      card.dataset.id = strain.id;
 
       // Mouse tracking for glow effect
       card.addEventListener('mousemove', (e) => {
@@ -624,7 +717,51 @@ function setupSearchAndFilter() {
   document.getElementById('search-input')?.addEventListener('input', renderStrains);
   document.getElementById('type-filter')?.addEventListener('change', renderStrains);
   document.getElementById('filter-sort')?.addEventListener('change', () => renderStrains());
+
+  document.getElementById('fav-filter-btn')?.addEventListener('click', () => {
+    appState.showFavoritesOnly = !appState.showFavoritesOnly;
+    const btn = document.getElementById('fav-filter-btn');
+    btn?.classList.toggle('filter-active', appState.showFavoritesOnly);
+    renderStrains();
+  });
 }
+
+// ===== APP GLOBAL INTERFACE =====
+window.App = {
+  async toggleFavorite(strainId) {
+    if (!currentUser) {
+      showToast('Bitte einloggen um Favoriten zu nutzen', 'error');
+      return;
+    }
+    const wasFav = Favorites.isFavorite(strainId);
+    try {
+      await Favorites.toggle(strainId);
+      // Update only the affected card's heart button (no full re-render)
+      const card = document.querySelector(`.strain-card[data-id="${strainId}"]`);
+      if (card) {
+        const favBtn = card.querySelector('.btn-favorite');
+        if (favBtn) {
+          const isFavNow = Favorites.isFavorite(strainId);
+          favBtn.title = isFavNow ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzuf\u00fcgen';
+          favBtn.setAttribute('aria-label', isFavNow ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzuf\u00fcgen');
+          favBtn.innerHTML = isFavNow
+            ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+            : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+          // If favoritesOnly filter is active and we just un-favorited, re-render
+          if (appState.showFavoritesOnly && !Favorites.isFavorite(strainId)) {
+            renderStrains();
+          }
+        }
+      }
+      showToast(
+        Favorites.isFavorite(strainId) ? 'Zu Favoriten hinzugefügt ❤️' : 'Aus Favoriten entfernt',
+        'success'
+      );
+    } catch (err) {
+      showToast('Fehler: ' + err.message, 'error');
+    }
+  }
+};
 
 // Forms and Settings
 function setupForms() {
@@ -1527,7 +1664,8 @@ function initCursor() {
   const ICONS = {
     edit: `<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
     delete: `<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>`,
-    text: `<line x1="12" y1="3" x2="12" y2="21" stroke-width="2"/><line x1="9" y1="3" x2="15" y2="3" stroke-width="2"/><line x1="9" y1="21" x2="15" y2="21" stroke-width="2"/>`
+    text: `<line x1="12" y1="3" x2="12" y2="21" stroke-width="2"/><line x1="9" y1="3" x2="15" y2="3" stroke-width="2"/><line x1="9" y1="21" x2="15" y2="21" stroke-width="2"/>`,
+    heart: `<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`
   };
 
   document.addEventListener('mousemove', (e) => {
@@ -1566,6 +1704,13 @@ function initCursor() {
     if (el.closest('.card-action-btn')) {
       cursor.style.opacity = '1';
       setCursorMode('icon', 'edit');
+      return;
+    }
+
+    // Favorite Button
+    if (el.closest('.btn-favorite') || el.closest('#fav-filter-btn')) {
+      cursor.style.opacity = '1';
+      setCursorMode('icon', 'heart');
       return;
     }
 
